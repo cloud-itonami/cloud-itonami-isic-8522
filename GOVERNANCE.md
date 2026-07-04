@@ -1,6 +1,6 @@
 # Governance
 
-`cloud-itonami-8522` is an OSS open-business blueprint for technical and vocational secondary education -- trade and technical-skills instruction at the secondary level.
+`cloud-itonami-isic-8522` is an OSS open-business blueprint for technical and vocational secondary education -- trade and technical-skills instruction at the secondary level.
 Governance covers both the capability layer and the operator model.
 
 ## Maintainers

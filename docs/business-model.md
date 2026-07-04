@@ -2,7 +2,7 @@
 
 ## Classification
 
-- Repository: `cloud-itonami-8522`
+- Repository: `cloud-itonami-isic-8522`
 - ISIC Rev.5: `8522`
 - Activity: technical and vocational secondary education -- trade and technical-skills instruction at the secondary level
 - Social impact: education access, data sovereignty, transparent audit

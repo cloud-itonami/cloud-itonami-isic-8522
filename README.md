@@ -1,4 +1,4 @@
-# cloud-itonami-8522
+# cloud-itonami-isic-8522
 
 Open Business Blueprint for **ISIC Rev.5 8522**: Technical and vocational secondary education.
 

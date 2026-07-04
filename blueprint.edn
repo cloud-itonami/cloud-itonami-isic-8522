@@ -1,4 +1,4 @@
-{:itonami.blueprint/id "cloud-itonami-8522"
+{:itonami.blueprint/id "cloud-itonami-isic-8522"
  :itonami.blueprint/name "Technical and vocational secondary education"
  :itonami.blueprint/isic-rev5 "8522"
  :itonami.blueprint/domain :education/technical-vocational-secondary
