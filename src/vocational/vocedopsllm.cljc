@@ -1,0 +1,275 @@
+(ns vocational.vocedopsllm
+  "VocEdOps-LLM client -- the *contained intelligence node* for the
+  technical-and-vocational-secondary-education actor (README:
+  \"VocEdOps-LLM\"), closely modeled on `cloud-itonami-isic-8521`'s
+  `secondary.schoolopsllm`.
+
+  It normalizes student-intake, drafts a per-jurisdiction vocational-
+  education evidence checklist, screens students for an unresolved
+  academic-integrity concern, screens students for an unconfirmed
+  workplace-safety-training certification, drafts the certification-
+  finalization action, and drafts the graduation-finalization action.
+  CRITICAL: it is a smart-but-untrusted advisor. It returns a
+  *proposal* (with a rationale + the fields it cited), never a
+  committed record or a real certification/graduation finalization.
+  Every output is censored downstream by `vocational.governor` before
+  anything touches the SSoT, and `:certification/finalize`/
+  `:graduation/finalize` proposals NEVER auto-commit at any phase --
+  see README `Actuation`.
+
+  Like every sibling actor's advisor, this is a deterministic mock so
+  the actor graph runs offline and the governor contract is exercised
+  end-to-end. In production this calls a real LLM (kotoba-llm or
+  equivalent) with the same proposal shape.
+
+  Proposal shape (all kinds):
+    {:summary    str            ; human-facing draft / finding
+     :rationale  str            ; why -- SCANNED by the spec-basis gate
+     :cites      [kw|str ..]    ; facts/sources the LLM used -- SCANNED too
+     :effect     kw             ; how a commit would mutate the SSoT
+     :stake      kw|nil         ; :actuation/finalize-certification | :actuation/finalize-graduation | nil
+     :confidence 0..1}"
+  (:require #?(:clj  [clojure.edn :as edn]
+               :cljs [cljs.reader :as edn])
+            [clojure.string :as str]
+            [vocational.facts :as facts]
+            [vocational.registry :as registry]
+            [vocational.store :as store]
+            [langchain.model :as model]))
+
+(defn- normalize-intake
+  "Directory upsert -- the LLM only normalizes/validates the patch; it
+  does not invent the student, attendance/credit figures or
+  jurisdiction. High confidence, low stakes."
+  [_db {:keys [patch]}]
+  {:summary    (str "生徒記録更新: " (pr-str (keys patch)))
+   :rationale  "入力 patch の正規化のみ。新規事実の生成なし。"
+   :cites      (vec (keys patch))
+   :effect     :student/upsert
+   :value      patch
+   :stake      nil
+   :confidence 0.97})
+
+(defn- assess-jurisdiction
+  "Per-jurisdiction vocational-education evidence checklist draft.
+  `:no-spec?` injects the failure mode we must defend against:
+  proposing a checklist for a jurisdiction with NO official spec-basis
+  in `vocational.facts` -- the Curriculum Safeguarding Governor must
+  reject this (never invent a jurisdiction's requirements)."
+  [db {:keys [subject no-spec?]}]
+  (let [s (store/student db subject)
+        iso3 (if no-spec? "ATL" (:jurisdiction s))
+        sb (facts/spec-basis iso3)]
+    (if (nil? sb)
+      {:summary    (str iso3 " の公式spec-basisが見つかりません")
+       :rationale  "vocational.facts に未登録の法域。要件を推測で作らない。"
+       :cites      []
+       :effect     :assessment/set
+       :value      {:jurisdiction iso3 :checklist [] :spec-basis nil}
+       :stake      nil
+       :confidence 0.9}
+      {:summary    (str iso3 " (" (:owner-authority sb) ") 向け必要書類 "
+                        (count (:required-evidence sb)) " 件を提案")
+       :rationale  (str "公式ソース: " (:provenance sb) " / 法的根拠: " (:legal-basis sb))
+       :cites      [(:legal-basis sb) (:provenance sb)]
+       :effect     :assessment/set
+       :value      {:jurisdiction iso3
+                    :checklist (:required-evidence sb)
+                    :spec-basis (:provenance sb)
+                    :legal-basis (:legal-basis sb)}
+       :stake      nil
+       :confidence 0.9})))
+
+(defn- screen-academic-integrity
+  "Academic-integrity screening draft. `:academic-integrity-flag?` on
+  the student record injects the failure mode: the Curriculum
+  Safeguarding Governor must HOLD, un-overridably, on any unresolved
+  concern."
+  [db {:keys [subject]}]
+  (let [s (store/student db subject)]
+    (cond
+      (nil? s)
+      {:summary "対象生徒記録が見つかりません" :rationale "no student record"
+       :cites [] :effect :integrity-screen/set :value {:student-id subject :verdict :unknown}
+       :stake nil :confidence 0.0}
+
+      (true? (:academic-integrity-flag? s))
+      {:summary    (str (:student-name s) ": 学業不正行為に関する懸念を検出")
+       :rationale  "スクリーニングが未解決の学業不正行為懸念を検出。人手確認とホールドが必須。"
+       :cites      [:integrity-check]
+       :effect     :integrity-screen/set
+       :value      {:student-id subject :verdict :unresolved}
+       :stake      nil
+       :confidence 0.95}
+
+      :else
+      {:summary    (str (:student-name s) ": 学業不正行為に関する懸念なし")
+       :rationale  "学業不正行為スクリーニング完了。"
+       :cites      [:integrity-check]
+       :effect     :integrity-screen/set
+       :value      {:student-id subject :verdict :resolved}
+       :stake      nil
+       :confidence 0.9})))
+
+(defn- screen-workplace-safety-training
+  "Workplace-safety-training screening draft -- the genuinely new
+  screening concern this vertical adds. `:workplace-safety-training-
+  certified? false` on the student record injects the failure mode:
+  the Curriculum Safeguarding Governor must HOLD, un-overridably, on
+  any unconfirmed workplace-safety-training certification."
+  [db {:keys [subject]}]
+  (let [s (store/student db subject)]
+    (cond
+      (nil? s)
+      {:summary "対象生徒記録が見つかりません" :rationale "no student record"
+       :cites [] :effect :safety-screen/set :value {:student-id subject :verdict :unknown}
+       :stake nil :confidence 0.0}
+
+      (not (true? (:workplace-safety-training-certified? s)))
+      {:summary    (str (:student-name s) ": 実習安全訓練の認定が未確認")
+       :rationale  "スクリーニングが実習安全訓練の未認定を検出。人手確認とホールドが必須。"
+       :cites      [:workplace-safety-training-check]
+       :effect     :safety-screen/set
+       :value      {:student-id subject :verdict :unconfirmed}
+       :stake      nil
+       :confidence 0.95}
+
+      :else
+      {:summary    (str (:student-name s) ": 実習安全訓練の認定確認済み")
+       :rationale  "実習安全訓練スクリーニング完了。"
+       :cites      [:workplace-safety-training-check]
+       :effect     :safety-screen/set
+       :value      {:student-id subject :verdict :confirmed}
+       :stake      nil
+       :confidence 0.9})))
+
+(defn- propose-certification-finalization
+  "Draft the actual CERTIFICATION-FINALIZATION action -- finalizing a
+  real student's trade/skill certification. ALWAYS `:stake :actuation/
+  finalize-certification` -- this is a REAL-WORLD academic-record act,
+  never a draft the actor may auto-run. See README `Actuation`: no
+  phase ever adds this op to a phase's `:auto` set (`vocational.
+  phase`); the governor also always escalates on `:actuation/finalize-
+  certification`. Two independent layers agree, deliberately."
+  [db {:keys [subject]}]
+  (let [s (store/student db subject)]
+    {:summary    (str subject " 向け認定確定提案"
+                      (when s (str " (student=" (:student-name s) ")")))
+     :rationale  (if s
+                   (str "attendance-hours-completed=" (:attendance-hours-completed s)
+                        " attendance-hours-required=" (:attendance-hours-required s)
+                        " workplace-safety-training-certified?=" (:workplace-safety-training-certified? s))
+                   "生徒記録が見つかりません")
+     :cites      (if s [subject] [])
+     :effect     :student/mark-certified
+     :value      {:student-id subject}
+     :stake      :actuation/finalize-certification
+     :confidence (if (and s (not (registry/attendance-hours-insufficient? s))
+                          (:workplace-safety-training-certified? s)) 0.9 0.3)}))
+
+(defn- propose-graduation-finalization
+  "Draft the actual GRADUATION-FINALIZATION action -- finalizing a
+  real student's graduation. ALWAYS `:stake :actuation/finalize-
+  graduation` -- this is a REAL-WORLD academic-record act, never a
+  draft the actor may auto-run. See README `Actuation`: no phase ever
+  adds this op to a phase's `:auto` set (`vocational.phase`); the
+  governor also always escalates on `:actuation/finalize-graduation`.
+  Two independent layers agree, deliberately."
+  [db {:keys [subject]}]
+  (let [s (store/student db subject)]
+    {:summary    (str subject " 向け卒業確定提案"
+                      (when s (str " (student=" (:student-name s) ")")))
+     :rationale  (if s
+                   (str "credits-earned=" (pr-str (:credits-earned s))
+                        " credits-required=" (pr-str (:credits-required s)))
+                   "生徒記録が見つかりません")
+     :cites      (if s [subject] [])
+     :effect     :student/mark-graduated
+     :value      {:student-id subject}
+     :stake      :actuation/finalize-graduation
+     :confidence (if (and s (not (registry/graduation-requirements-unsatisfied? s))) 0.9 0.3)}))
+
+(defn infer
+  "Route a request to the right proposal generator.
+  request: {:op kw :subject id ...op-specific...}"
+  [db {:keys [op] :as request}]
+  (case op
+    :student/intake                    (normalize-intake db request)
+    :jurisdiction/assess                 (assess-jurisdiction db request)
+    :academic-integrity/screen             (screen-academic-integrity db request)
+    :safety/screen                            (screen-workplace-safety-training db request)
+    :certification/finalize                      (propose-certification-finalization db request)
+    :graduation/finalize                            (propose-graduation-finalization db request)
+    {:summary "未対応の操作" :rationale (str op) :cites []
+     :effect :noop :stake nil :confidence 0.0}))
+
+;; ----------------------------- Advisor protocol -----------------------------
+
+(defprotocol Advisor
+  (-advise [advisor store request] "store + request -> proposal map"))
+
+(defn mock-advisor
+  "The deterministic advisor (the `infer` logic above). Default everywhere."
+  [] (reify Advisor (-advise [_ st req] (infer st req))))
+
+(def ^:private system-prompt
+  (str "あなたは専門高校・職業訓練校の認定確定・卒業確定エージェントの助言者です。"
+       "与えられた事実のみに基づき、提案を1つだけEDNマップで返します。説明や前置きは"
+       "一切書かず、EDNだけを出力します。\n"
+       "キー: :summary(人向けドラフト) :rationale(根拠/必ず事実から) "
+       ":cites(使った事実キーのベクタ) "
+       ":effect(:student/upsert|:assessment/set|:integrity-screen/set|:safety-screen/set|"
+       ":student/mark-certified|:student/mark-graduated) "
+       ":stake(:actuation/finalize-certification か :actuation/finalize-graduation か nil) :confidence(0..1)。\n"
+       "重要: 登録されていない法域の要件を絶対に創作してはいけません。"
+       "spec-basisが無い場合は :cites を空にし confidence を上げないこと。"
+       "実習安全訓練の認定状況を偽って報告してはいけません。"))
+
+(defn- facts-for [st {:keys [op subject]}]
+  (case op
+    :jurisdiction/assess        {:student (store/student st subject)}
+    :academic-integrity/screen  {:student (store/student st subject)}
+    :safety/screen              {:student (store/student st subject)}
+    :certification/finalize     {:student (store/student st subject)}
+    :graduation/finalize        {:student (store/student st subject)}
+    {:student (store/student st subject)}))
+
+(defn- parse-proposal
+  "Parse the model's EDN proposal defensively. Any parse/shape failure
+  yields a safe low-confidence noop so the Curriculum Safeguarding
+  Governor escalates/holds -- an LLM hiccup can never auto-finalize a
+  certification or auto-finalize a graduation."
+  [content]
+  (let [p (try (edn/read-string (str/trim (str content)))
+               (catch #?(:clj Exception :cljs :default) _ nil))]
+    (if (map? p)
+      (-> p
+          (update :cites #(vec (or % [])))
+          (update :confidence #(if (number? %) (double %) 0.0))
+          (update :effect #(or % :noop)))
+      {:summary "LLM応答を解釈できませんでした" :rationale (str content)
+       :cites [] :effect :noop :stake nil :confidence 0.0})))
+
+(defn llm-advisor
+  "An advisor backed by a `langchain.model/ChatModel` (real inference)."
+  ([chat-model] (llm-advisor chat-model {}))
+  ([chat-model gen-opts]
+   (reify Advisor
+     (-advise [_ st req]
+       (let [msgs [{:role :system :content system-prompt}
+                   {:role :user :content (str "操作: " (:op req)
+                                              "\n対象: " (:subject req)
+                                              "\n事実: " (pr-str (facts-for st req)))}]
+             resp (model/-generate chat-model msgs gen-opts)]
+         (parse-proposal (:content resp)))))))
+
+(defn trace
+  "Decision-grounded audit record -- persisted to the :audit channel."
+  [request proposal]
+  {:t          :vocedopsllm-proposal
+   :op         (:op request)
+   :subject    (:subject request)
+   :summary    (:summary proposal)
+   :rationale  (:rationale proposal)
+   :cites      (:cites proposal)
+   :confidence (:confidence proposal)})
