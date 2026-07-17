@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical and vocational secondary education — ISIC 8522</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f9f9f9;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        header {
+            background: white;
+            padding: 40px 0;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 40px;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #1a1a1a;
+        }
+        .isic {
+            color: #666;
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+        .pitch {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            line-height: 1.8;
+            font-size: 1.05em;
+        }
+        .pitch p {
+            margin-bottom: 15px;
+        }
+        .pitch p:last-child {
+            margin-bottom: 0;
+        }
+        .ctas {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        .cta {
+            padding: 20px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+        .cta-primary {
+            background: #0066cc;
+            color: white;
+        }
+        .cta-primary:hover {
+            background: #0052a3;
+        }
+        .cta-secondary {
+            background: #e8e8e8;
+            color: #333;
+        }
+        .cta-secondary:hover {
+            background: #d0d0d0;
+        }
+        .links {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            margin-bottom: 40px;
+        }
+        .links h2 {
+            font-size: 1.3em;
+            margin-bottom: 20px;
+            color: #1a1a1a;
+        }
+        .links ul {
+            list-style: none;
+        }
+        .links li {
+            margin-bottom: 12px;
+        }
+        .links a {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+        footer {
+            background: white;
+            padding: 20px 0;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+            color: #666;
+            font-size: 0.9em;
+        }
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px 15px;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+            .ctas {
+                grid-template-columns: 1fr;
+            }
+            .pitch {
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Technical and vocational secondary education</h1>
+            <div class="isic">ISIC Rev.5 8522</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="pitch">
+            <p>An open-source, forkable business for independent vocational schools and trade-training organizations. This actor governs the complete student lifecycle: enrollment intake, jurisdiction assessment, academic-integrity screening, workplace-safety-training screening, certification finalization, and graduation finalization.</p>
+            <p>Built on a Curriculum Safeguarding Governor that ensures no certification or graduation is finalized without human sign-off, with an immutable audit ledger tracking every decision. The governor enforces that workplace-safety-training certification is confirmed before any trade certification is granted — a non-negotiable safeguard for hands-on practicum work.</p>
+            <p>Deploy as a self-hosted instance or managed service, keeping student data under your control and audit trails fully transparent. No SaaS vendor lock-in. No fabricated credentials.</p>
+        </div>
+
+        <div class="ctas">
+            <a href="https://itonami.cloud/isco-1212/" class="cta cta-primary">Fork + Self-Host</a>
+            <a href="https://itonami.cloud/docs/go-live.md" class="cta cta-secondary">Managed Path →</a>
+        </div>
+
+        <div class="links">
+            <h2>Resources</h2>
+            <ul>
+                <li><a href="../README.md">Technical README</a> — architecture, actor lifecycle, governor rules</li>
+                <li><a href="operator-quickstart.md">Operator Quick Start</a> — run tests, demo, and deployment setup</li>
+                <li><a href="business-model.md">Business Model</a> — revenue, customer profiles, trust controls</li>
+                <li><a href="operator-guide.md">Operator Guide</a> — first deployment, minimum production controls</li>
+                <li><a href="adr/0001-architecture.md">Architecture Decision Record</a> — design rationale and patterns</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            <p>AGPL-3.0-or-later. Part of the cloud-itonami actor fleet. <a href="https://github.com/cloud-itonami/cloud-itonami-isic-8522" style="color: #0066cc;">View on GitHub</a></p>
+        </div>
+    </footer>
+</body>
+</html>
