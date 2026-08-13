@@ -7,7 +7,17 @@
  ;; paths only resolve inside the monorepo checkout — a standalone fork
  ;; should override them with git coordinates.
  :deps {io.github.kotoba-lang/langgraph
-        {:local/root "../../kotoba-lang/langgraph"}}
+        {:local/root "../../kotoba-lang/langgraph"}
+        ;; デジタル庁デザインシステム(DADS) -- the workspace's BASE design
+        ;; system. `vocational.render-html` reads the vendored upstream
+        ;; stylesheet off this dep's classpath at build time and resolves the
+        ;; operator console's `--hig-*` token contract onto real DADS colour
+        ;; primitives, so the palette cannot drift into hand-copied hex.
+        ;; Consumed as a git coordinate (not :local/root) so a standalone fork
+        ;; outside this monorepo still resolves it.
+        io.github.kotoba-lang/jp-go-digital-design-system
+        {:git/url "https://github.com/kotoba-lang/jp-go-digital-design-system"
+         :git/sha "83db99546eabc53613ae826ea41d1533a3c574af"}}
  :aliases
  {;; offline workspace dev -- pin transitive langchain to local checkout
   :dev {:override-deps

@@ -146,7 +146,11 @@
    {:id "s19" :op :certification/finalize :subject "student-4"
     :approve {:status :approved :by "approver-hideo"}
     :expect :probe
-    :note "CONFORMANCE PROBE. student-4's ground-truth academic-integrity flag is set. Whatever the governor does here is reported verbatim."}])
+    :note "CONFORMANCE PROBE. student-4's ground-truth academic-integrity flag is set. Whatever the governor does here is reported verbatim."}
+
+   {:id "s20" :op :graduation/finalize :subject "student-2"
+    :expect :governor-hard-hold
+    :note "student-2's jurisdiction assessment was itself refused at s07, so no evidence checklist ever reached the store. The governor will not finalize a graduation on top of a gap it created -- and this student's credits, attendance and safety training are all clean, so the hold is attributable to the missing evidence alone."}])
 
 (def probe-scenario-id "s19")
 (def probe-subject "student-4")
