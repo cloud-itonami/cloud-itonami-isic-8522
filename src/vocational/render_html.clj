@@ -838,7 +838,9 @@ footer{color:var(--hig-color-text-secondary);font-size:12px;padding:0 var(--hig-
                   (class-label (:expect scenario)) (class-label class)]))]
        [:p {:class "note good"}
         "All " (str (count checked)) " declared runs landed in their declared class. "
-        "(" (str (- (count runs) (count checked))) " run is a conformance probe with no declared class — see section 12.)"]))))
+        "(" (str (- (count runs) (count checked)))
+        " run is a conformance probe with no declared class — see "
+        [:a {:href "#probe"} "the conformance probe"] ".)"]))))
 
 (defn- sec-ledger [db]
   (let [facts (store/ledger db)]
