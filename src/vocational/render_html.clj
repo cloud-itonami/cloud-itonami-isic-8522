@@ -436,21 +436,109 @@
 ;; contract so a later move onto that stack is a swap, not a rewrite.
 ;; ===================================================================
 
+;; ===================================================================
+;; design system -- デジタル庁デザインシステム (DADS)
+;;
+;; This workspace's BASE design system is `jp-go-digital-design-system`.
+;; Rather than restate its palette as hex here (which silently drifts the
+;; moment upstream re-vendors), the build READS the vendored upstream
+;; stylesheet off that dependency's classpath and lifts out only the
+;; primitives this page actually references. Consequences that matter:
+;;
+;;   - a missing dependency, a moved resource or a renamed primitive is a
+;;     BUILD FAILURE, not a page that silently renders unstyled;
+;;   - the page carries ~1 KB of palette instead of the full 67 KB
+;;     upstream sheet, because unreferenced primitives are never emitted;
+;;   - the `--hig-*` token contract still names every value the layout
+;;     rules below use, so those rules are unchanged by the grounding.
+;; ===================================================================
+
+(def ^:const dads-resource
+  "The upstream DADS stylesheet, vendored inside the jp-go-dds dependency."
+  "jp_go_dds/dds.css")
+
+(def dads-primitives
+  "The DADS primitives this page's token contract resolves onto. Order is
+  literal (not derived from a map) so the emitted CSS is byte-stable."
+  ["--color-neutral-white"
+   "--color-neutral-solid-gray-50"
+   "--color-neutral-solid-gray-100"
+   "--color-neutral-solid-gray-200"
+   "--color-neutral-solid-gray-600"
+   "--color-neutral-solid-gray-900"
+   "--color-primitive-blue-50"
+   "--color-primitive-blue-900"
+   "--color-primitive-green-50"
+   "--color-primitive-green-200"
+   "--color-primitive-green-1000"
+   "--color-primitive-orange-50"
+   "--color-primitive-orange-200"
+   "--color-primitive-orange-1000"
+   "--color-primitive-purple-50"
+   "--color-primitive-purple-200"
+   "--color-primitive-purple-1000"
+   "--color-primitive-red-50"
+   "--color-primitive-red-200"
+   "--color-primitive-red-1000"
+   "--font-family-sans"
+   "--font-family-mono"])
+
+(defn dads-palette
+  "Read `dads-resource` off the classpath and return `[name value]` pairs
+  for `names`, in the order given. Throws when the resource is absent or
+  when any requested primitive is not declared upstream -- this page
+  refuses to fall back to a hand-written palette."
+  [names]
+  (let [res  (io/resource dads-resource)
+        _    (when-not res
+               (throw (ex-info (str "DADS stylesheet not on the classpath: " dads-resource
+                                    ". Is io.github.kotoba-lang/jp-go-digital-design-system"
+                                    " still in deps.edn?")
+                               {:resource dads-resource})))
+        root (second (re-find #"(?s):root\s*\{(.*?)\n\}" (slurp res)))
+        _    (when-not root
+               (throw (ex-info "DADS stylesheet has no :root primitive block"
+                               {:resource dads-resource})))
+        decl (into {} (map (fn [[_ k v]] [k (str/trim v)]))
+                   (re-seq #"(--[a-z0-9-]+)\s*:\s*([^;]+);" root))
+        gone (remove decl names)]
+    (when (seq gone)
+      (throw (ex-info "DADS no longer declares primitives this page references"
+                      {:missing (vec gone) :resource dads-resource})))
+    (mapv (fn [n] [n (decl n)]) names)))
+
+(defn dads-root-css
+  "The `:root` block: the lifted DADS primitives, then the `--hig-*`
+  contract expressed purely as references to them."
+  []
+  (str ":root{\n"
+       (str/join (for [[n v] (dads-palette dads-primitives)]
+                   (str "  " n ":" v ";\n")))
+       "\n"
+       "  --hig-color-bg:var(--color-neutral-solid-gray-50);\n"
+       "  --hig-color-surface:var(--color-neutral-white);\n"
+       "  --hig-color-text:var(--color-neutral-solid-gray-900);\n"
+       "  --hig-color-text-secondary:var(--color-neutral-solid-gray-600);\n"
+       "  --hig-color-accent:var(--color-primitive-blue-900);\n"
+       "  --hig-color-danger:var(--color-primitive-red-1000);\n"
+       "  --hig-color-warning:var(--color-primitive-orange-1000);\n"
+       "  --hig-color-success:var(--color-primitive-green-1000);\n"
+       "  --hig-color-reject:var(--color-primitive-purple-1000);\n"
+       "  --hig-hairline:var(--color-neutral-solid-gray-200);\n"
+       "  --hig-radius-md:10px; --hig-radius-xs:4px;\n"
+       "  --hig-spacing-2:8px; --hig-spacing-3:12px;"
+       " --hig-spacing-4:16px; --hig-spacing-6:24px;\n"
+       "  --hig-font-sans:var(--font-family-sans);\n"
+       "  --hig-font-mono:var(--font-family-mono);\n"
+       "}\n"))
+
 (def ^:private stylesheet "
-:root{
-  --hig-color-bg:#f4f6f8; --hig-color-surface:#fff; --hig-color-text:#1a1a1c;
-  --hig-color-text-secondary:#5b5f66; --hig-color-accent:#0017c1;
-  --hig-color-danger:#c8232c; --hig-color-warning:#a86a00; --hig-color-success:#00662a;
-  --hig-hairline:#d8dce1; --hig-radius-md:10px; --hig-radius-xs:4px;
-  --hig-spacing-2:8px; --hig-spacing-3:12px; --hig-spacing-4:16px; --hig-spacing-6:24px;
-  --hig-font-sans:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;
-  --hig-font-mono:ui-monospace,SFMono-Regular,Menlo,monospace;
-}
 *{box-sizing:border-box}
 body{margin:0;background:var(--hig-color-bg);color:var(--hig-color-text);
   font-family:var(--hig-font-sans);line-height:1.65;font-size:15px}
 main{max-width:1180px;margin:0 auto;padding:var(--hig-spacing-6) var(--hig-spacing-4) 72px}
-header.masthead{background:var(--hig-color-accent);color:#fff;padding:32px var(--hig-spacing-4)}
+header.masthead{background:var(--hig-color-accent);color:var(--color-neutral-white);
+  padding:32px var(--hig-spacing-4)}
 header.masthead .inner{max-width:1180px;margin:0 auto}
 header.masthead h1{margin:0 0 6px;font-size:26px;letter-spacing:.01em}
 header.masthead p{margin:0;opacity:.92;font-size:14px}
@@ -465,33 +553,38 @@ p.lead{color:var(--hig-color-text-secondary);margin:0 0 var(--hig-spacing-4);fon
 .scroll{overflow-x:auto}
 table{border-collapse:collapse;width:100%;font-size:13px}
 th,td{border:1px solid var(--hig-hairline);padding:7px 9px;text-align:left;vertical-align:top}
-th{background:#eef1f5;font-weight:600;white-space:nowrap}
+th{background:var(--color-neutral-solid-gray-100);font-weight:600;white-space:nowrap}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
 code,.mono{font-family:var(--hig-font-mono);font-size:12px}
 .pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;
   font-weight:700;letter-spacing:.03em;white-space:nowrap;font-family:var(--hig-font-mono)}
-.p-commit{background:#e2f3e8;color:var(--hig-color-success);border:1px solid #b6ddc4}
-.p-hold{background:#fbe6e7;color:var(--hig-color-danger);border:1px solid #eeb9bd}
-.p-phase{background:#fdf1dc;color:var(--hig-color-warning);border:1px solid #e8cf9d}
-.p-reject{background:#ece9fb;color:#4231a4;border:1px solid #c6bdec}
-.p-other{background:#eceff3;color:var(--hig-color-text-secondary);border:1px solid var(--hig-hairline)}
+.p-commit{background:var(--color-primitive-green-50);color:var(--hig-color-success);
+  border:1px solid var(--color-primitive-green-200)}
+.p-hold{background:var(--color-primitive-red-50);color:var(--hig-color-danger);
+  border:1px solid var(--color-primitive-red-200)}
+.p-phase{background:var(--color-primitive-orange-50);color:var(--hig-color-warning);
+  border:1px solid var(--color-primitive-orange-200)}
+.p-reject{background:var(--color-primitive-purple-50);color:var(--hig-color-reject);
+  border:1px solid var(--color-primitive-purple-200)}
+.p-other{background:var(--color-neutral-solid-gray-50);color:var(--hig-color-text-secondary);
+  border:1px solid var(--hig-hairline)}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:var(--hig-spacing-3)}
 .stat{border:1px solid var(--hig-hairline);border-radius:var(--hig-radius-md);
-  padding:var(--hig-spacing-3);background:#fbfcfd}
+  padding:var(--hig-spacing-3);background:var(--hig-color-surface)}
 .stat .n{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
 .stat .k{font-size:12px;color:var(--hig-color-text-secondary);margin-top:2px}
 .card{border:1px solid var(--hig-hairline);border-left:4px solid var(--hig-color-danger);
   border-radius:var(--hig-radius-xs);padding:var(--hig-spacing-3);
-  margin:var(--hig-spacing-3) 0;background:#fffafa}
-.card.phase{border-left-color:var(--hig-color-warning);background:#fffdf7}
-.card.reject{border-left-color:#4231a4;background:#fbfaff}
+  margin:var(--hig-spacing-3) 0;background:var(--color-primitive-red-50)}
+.card.phase{border-left-color:var(--hig-color-warning);background:var(--color-primitive-orange-50)}
+.card.reject{border-left-color:var(--hig-color-reject);background:var(--color-primitive-purple-50)}
 .card h4{margin:0 0 6px;font-size:14px}
 .card .why{margin:6px 0 0;font-size:13px}
-.note{border-left:4px solid var(--hig-color-accent);background:#f2f4ff;
+.note{border-left:4px solid var(--hig-color-accent);background:var(--color-primitive-blue-50);
   padding:var(--hig-spacing-3);border-radius:var(--hig-radius-xs);font-size:13px;
   margin:var(--hig-spacing-3) 0}
-.note.bad{border-left-color:var(--hig-color-danger);background:#fdf3f3}
-.note.good{border-left-color:var(--hig-color-success);background:#f1faf4}
+.note.bad{border-left-color:var(--hig-color-danger);background:var(--color-primitive-red-50)}
+.note.good{border-left-color:var(--hig-color-success);background:var(--color-primitive-green-50)}
 dl.kv{display:grid;grid-template-columns:max-content 1fr;gap:4px var(--hig-spacing-3);
   margin:0;font-size:13px}
 dl.kv dt{color:var(--hig-color-text-secondary)}
@@ -529,6 +622,12 @@ footer{color:var(--hig-color-text-secondary);font-size:12px;padding:0 var(--hig-
     [:dt "governor"] [:dd [:code (kw (:itonami.blueprint/governor bp))]]
     [:dt "advisor node"] [:dd [:code "vocational.vocedopsllm"] " (deterministic mock advisor)"]
     [:dt "store backend"] [:dd [:code (.getName (class db))] " seeded from " [:code "vocational.store/demo-data"]]
+    [:dt "design system"] [:dd "デジタル庁デザインシステム (DADS) — "
+                           (str (count (dads-palette dads-primitives)))
+                           " colour/type primitives lifted at build time from "
+                           [:code dads-resource]
+                           ", which this page's " [:code "--hig-*"]
+                           " token contract resolves onto. No hex is written by hand."]
     [:dt "default phase"] [:dd (str "phase " (:phase operator-context) " — "
                                     (get-in phase/phases [(:phase operator-context) :label]))]
     [:dt "executing actor"] [:dd [:code (:actor-id operator-context)] " (role " [:code (kw (:actor-role operator-context))] ")"]
@@ -925,7 +1024,7 @@ footer{color:var(--hig-color-text-secondary);font-size:12px;padding:0 var(--hig-
              [:title (str "Operator console — " (txt (:itonami.blueprint/id bp)))]
              [:meta {:name "description"
                      :content "Build-time operator console rendered from a live run of the ISIC 8522 technical-and-vocational-secondary-education actor."}]
-             [:style {} (raw stylesheet)]]
+             [:style {} (raw (str "\n" (dads-root-css) stylesheet))]]
             [:body
              [:header {:class "masthead"}
               [:div {:class "inner"}
