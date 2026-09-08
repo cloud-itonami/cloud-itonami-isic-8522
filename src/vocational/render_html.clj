@@ -36,7 +36,7 @@
   Run: `clojure -M:dev:render-html [out-path]`"
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
-            [clojure.string :as str]
+            [kotoba.lang.text :as str]
             [langgraph.graph :as g]
             [vocational.facts :as facts]
             [vocational.governor :as governor]
