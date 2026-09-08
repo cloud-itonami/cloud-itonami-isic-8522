@@ -29,7 +29,7 @@
   operation`'s `:certification/finalize`/`:graduation/finalize`,
   always human-gated -- see README `Actuation`)."
   (:require [clojure.set :as set]
-            [clojure.string :as str]))
+            [kotoba.lang.text :as str]))
 
 (defn- unsigned-certificate
   "Every certificate this actor produces is UNSIGNED -- signature is the
@@ -79,7 +79,7 @@
     (throw (ex-info "certification-finalization: jurisdiction required" {})))
   (when (< sequence 0)
     (throw (ex-info "certification-finalization: sequence must be >= 0" {})))
-  (let [certification-number (str (str/upper-case jurisdiction) "-CRT-" (zero-pad sequence 6))
+  (let [certification-number (str (str/upper jurisdiction) "-CRT-" (zero-pad sequence 6))
         record {"record_id" certification-number
                 "kind" "certification-finalization-draft"
                 "student_id" student-id
@@ -104,7 +104,7 @@
     (throw (ex-info "graduation-finalization: jurisdiction required" {})))
   (when (< sequence 0)
     (throw (ex-info "graduation-finalization: sequence must be >= 0" {})))
-  (let [graduation-number (str (str/upper-case jurisdiction) "-GRA-" (zero-pad sequence 6))
+  (let [graduation-number (str (str/upper jurisdiction) "-GRA-" (zero-pad sequence 6))
         record {"record_id" graduation-number
                 "kind" "graduation-finalization-draft"
                 "student_id" student-id
