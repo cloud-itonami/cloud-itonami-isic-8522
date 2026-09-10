@@ -149,7 +149,7 @@ layers enforce this (`vocational.governor`'s `:actuation/finalize-
 certification`/`:actuation/finalize-graduation` high-stakes gate and
 `vocational.phase`'s phase table, which never puts either op in any
 phase's `:auto` set) -- see `vocational.phase`'s docstring and
-`test/vocational/phase_test.clj`'s `certification-finalize-never-
+`test/vocational/phase_test.kotoba`'s `certification-finalize-never-
 auto-at-any-phase`/`graduation-finalize-never-auto-at-any-phase`. The
 actor may draft, check and recommend; a human licensed educator is
 always the one who actually finalizes a certification or graduation.
@@ -244,14 +244,14 @@ stack only -- no bespoke domain capability lib to reference at all.
 
 | File | Role |
 |---|---|
-| `src/vocational/store.cljc` | **Store** protocol -- `MemStore` ‖ `DatomicStore` (`langchain.db`) + append-only audit ledger + separate certification-finalization/graduation-finalization history. No dynamically-filed sub-record -- both actuation ops act directly on a pre-seeded student, and the double-finalization guards check dedicated `:certification-finalized?`/`:graduation-finalized?` booleans rather than a `:status` value |
-| `src/vocational/registry.cljc` | Certification-finalization + graduation-finalization draft records, plus `attendance-hours-insufficient?`/`graduation-requirements-unsatisfied?` -- HONEST, literal reuses of `secondary.registry`'s own checks for the SAME real-world concerns, not claimed as new |
-| `src/vocational/facts.cljc` | Per-jurisdiction vocational-education licensing catalog AND a SEPARATE workplace-safety-training citation per jurisdiction (a genuine extension beyond `secondary.facts`'s own general-academic-curriculum-only catalog) with an official spec-basis citation per entry, honest coverage reporting |
-| `src/vocational/vocedopsllm.cljc` | **VocEdOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/academic-integrity-screening/workplace-safety-training-screening/certification-finalization/graduation-finalization proposals |
-| `src/vocational/governor.cljc` | **Curriculum Safeguarding Governor** -- 8 checks: spec-basis · evidence-incomplete · attendance-hours-insufficient (honest reuse) · academic-integrity-flag-unresolved (honest reuse) · workplace-safety-training-unconfirmed (UNCONDITIONAL evaluation, GENUINELY NEW, the 65th grounding of this discipline) · graduation-requirements-unsatisfied (honest reuse) · already-certified guard · already-graduated guard, + 1 soft (confidence/actuation gate) |
-| `src/vocational/phase.cljc` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (both certification and graduation finalization always human; student intake is the ONLY auto-eligible op, no direct capital risk) |
-| `src/vocational/operation.cljc` | **OperationActor** -- langgraph StateGraph |
-| `src/vocational/sim.cljc` | demo driver |
+| `src/vocational/store.kotoba` | **Store** protocol -- `MemStore` ‖ `DatomicStore` (`langchain.db`) + append-only audit ledger + separate certification-finalization/graduation-finalization history. No dynamically-filed sub-record -- both actuation ops act directly on a pre-seeded student, and the double-finalization guards check dedicated `:certification-finalized?`/`:graduation-finalized?` booleans rather than a `:status` value |
+| `src/vocational/registry.kotoba` | Certification-finalization + graduation-finalization draft records, plus `attendance-hours-insufficient?`/`graduation-requirements-unsatisfied?` -- HONEST, literal reuses of `secondary.registry`'s own checks for the SAME real-world concerns, not claimed as new |
+| `src/vocational/facts.kotoba` | Per-jurisdiction vocational-education licensing catalog AND a SEPARATE workplace-safety-training citation per jurisdiction (a genuine extension beyond `secondary.facts`'s own general-academic-curriculum-only catalog) with an official spec-basis citation per entry, honest coverage reporting |
+| `src/vocational/vocedopsllm.kotoba` | **VocEdOps-LLM** -- `mock-advisor` ‖ `llm-advisor`; intake/jurisdiction-assessment/academic-integrity-screening/workplace-safety-training-screening/certification-finalization/graduation-finalization proposals |
+| `src/vocational/governor.kotoba` | **Curriculum Safeguarding Governor** -- 8 checks: spec-basis · evidence-incomplete · attendance-hours-insufficient (honest reuse) · academic-integrity-flag-unresolved (honest reuse) · workplace-safety-training-unconfirmed (UNCONDITIONAL evaluation, GENUINELY NEW, the 65th grounding of this discipline) · graduation-requirements-unsatisfied (honest reuse) · already-certified guard · already-graduated guard, + 1 soft (confidence/actuation gate) |
+| `src/vocational/phase.kotoba` | **Phase 0→3** -- read-only → assisted intake → assisted assess → supervised (both certification and graduation finalization always human; student intake is the ONLY auto-eligible op, no direct capital risk) |
+| `src/vocational/operation.kotoba` | **OperationActor** -- langgraph StateGraph |
+| `src/vocational/sim.kotoba` | demo driver |
 | `test/vocational/*_test.clj` | governor contract · phase invariants · store parity · registry conformance · facts coverage |
 
 ## Business-process coverage (honest)

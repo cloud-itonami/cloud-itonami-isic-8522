@@ -122,7 +122,7 @@ by `cloud-itonami-isic-6492`'s real status-lifecycle bug
 `vocational.store/Store` is implemented by both `MemStore` (atom-
 backed, default for dev/tests/demo) and `DatomicStore` (`langchain.
 db`-backed), proven to satisfy the same contract in
-`test/vocational/store_contract_test.clj` -- the same seam every
+`test/vocational/store_contract_test.kotoba` -- the same seam every
 sibling actor uses so swapping the SSoT backend is a configuration
 change, not a rewrite.
 
@@ -192,7 +192,7 @@ finalizing a certification or graduation).
   the FIRST fully-unconditional variant since the two most recent
   conditional-variant additions.
 - `MemStore` ‖ `DatomicStore` parity is proven by
-  `test/vocational/store_contract_test.clj`, the same `:db-api`-driven
+  `test/vocational/store_contract_test.kotoba`, the same `:db-api`-driven
   swap pattern every sibling actor uses.
 - 41 tests / 208 assertions pass; lint is clean; the demo
   (`clojure -M:dev:run`) walks one clean dual-actuation lifecycle plus
