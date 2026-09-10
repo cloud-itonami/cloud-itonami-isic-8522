@@ -45,7 +45,7 @@ The demo logs every decision, governor hold, escalation, and audit record.
 
 The **Curriculum Safeguarding Governor** is the core independent decision engine:
 
-**File**: `src/vocational/governor.cljc`
+**File**: `src/vocational/governor.kotoba`
 
 **Key decision gates**:
 - `:spec-basis` — jurisdiction requirements are in the official catalog
@@ -62,11 +62,11 @@ The governor **never finalizes a certification or graduation without a human sig
 1. Governor's `:actuation/finalize-certification` and `:actuation/finalize-graduation` gates (reject if hard checks fail)
 2. Phase table (neither finalization op appears in any phase's `:auto` set)
 
-See `test/vocational/phase_test.clj` for invariant tests.
+See `test/vocational/phase_test.kotoba` for invariant tests.
 
 ## Demo Driver
 
-**File**: `src/vocational/sim.cljc`
+**File**: `src/vocational/sim.kotoba`
 
 The simulation loads the actor, seeds a test student, and runs through the complete lifecycle, demonstrating:
 - Intake proposal and record creation
@@ -79,12 +79,12 @@ The simulation loads the actor, seeds a test student, and runs through the compl
 
 | File | Role |
 |---|---|
-| `src/vocational/store.cljc` | Append-only audit ledger + student record store (in-memory and Datomic) |
-| `src/vocational/operation.cljc` | `OperationActor` — langgraph StateGraph runtime |
-| `src/vocational/phase.cljc` | Phase 0→3 state machine and phase table |
-| `src/vocational/vocedopsllm.cljc` | VocEdOps-LLM proposal engine (mock and real) |
-| `src/vocational/registry.cljc` | Certification/graduation draft records and validation |
-| `src/vocational/facts.cljc` | Jurisdiction vocational-education catalog + workplace-safety-training citations |
+| `src/vocational/store.kotoba` | Append-only audit ledger + student record store (in-memory and Datomic) |
+| `src/vocational/operation.kotoba` | `OperationActor` — langgraph StateGraph runtime |
+| `src/vocational/phase.kotoba` | Phase 0→3 state machine and phase table |
+| `src/vocational/vocedopsllm.kotoba` | VocEdOps-LLM proposal engine (mock and real) |
+| `src/vocational/registry.kotoba` | Certification/graduation draft records and validation |
+| `src/vocational/facts.kotoba` | Jurisdiction vocational-education catalog + workplace-safety-training citations |
 
 ## Lint
 
