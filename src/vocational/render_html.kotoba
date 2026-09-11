@@ -33,7 +33,7 @@
   zero HARD governor holds. A console that shows no genuine refusal is
   not evidence that the governor works, so it is not publishable.
 
-  Run: `clojure -M:dev:render-html [out-path]`"
+  Run: `kbb -M:dev:render-html [out-path]`"
   (:require [clojure.edn :as edn]
             [clojure.java.io :as io]
             [kotoba.lang.text :as str]
@@ -976,7 +976,7 @@ footer{color:var(--hig-color-text-secondary);font-size:12px;padding:0 var(--hig-
   (section
    "repro" "14. Reproducing this page"
    nil
-   [:pre [:code "clojure -M:dev:render-html"]]
+   [:pre [:code "kbb -M:dev:render-html"]]
    [:p "The renderer executes " (str (count runs)) " graph runs against a freshly seeded "
     [:code (.getName (class db))] ", classifies each one, and writes this file. "
     "It refuses to write anything at all if the run produces zero HARD governor holds — "
