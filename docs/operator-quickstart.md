@@ -12,7 +12,7 @@ The test suite validates the Curriculum Safeguarding Governor contract, phase in
 
 ```bash
 cd /path/to/cloud-itonami-isic-8522
-clojure -M:dev:test
+kbb -M:dev:test
 ```
 
 Expected output includes passing tests for:
@@ -27,7 +27,7 @@ Expected output includes passing tests for:
 Walk through a complete, clean student lifecycle and six hard-hold cases:
 
 ```bash
-clojure -M:dev:run
+kbb -M:dev:run
 ```
 
 This drives the `OperationActor` through:
@@ -91,7 +91,7 @@ The simulation loads the actor, seeds a test student, and runs through the compl
 Run static analysis with clj-kondo:
 
 ```bash
-clojure -M:lint
+kbb -M:lint
 ```
 
 Errors fail the lint step; warnings are reported. CI mirrors this check.
