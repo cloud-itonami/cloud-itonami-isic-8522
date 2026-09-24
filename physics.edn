@@ -1,0 +1,35 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:dev:physics` runs it.
+;;
+;; README "Robotics premise": a workshop-safety monitoring robot supports
+;; physical supervision during practical training in technical and vocational
+;; secondary education (ISIC 8522). Its physical work is in the training
+;; workshop: patrolling between machines and benches, and deciding when a
+;; freshly welded or flame-cut steel coupon has cooled enough for a trainee
+;; to pick it up bare-handed.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isic-8522"
+ :cases
+ [{:id :workshop-patrol-stop
+   :kind :transport
+   :procedure "monitoring robot patrols the aisle between lathes and welding bays and brakes to a stop when a trainee steps out"
+   :params {:mass-kg 50.0 :payload-kg 5.0 :distance-m 25.0 :a-max-mps2 0.5
+            :brake-decel-mps2 1.2 :drive-force-n 200.0 :crr 0.02
+            :cog-height-m 0.60 :support-half-length-m 0.28 :max-time-s 2000.0}
+   :sweep {:param :v-max-mps :values [0.3 0.5 0.7 0.9 1.2]}
+   :quantity :stopping-distance-m
+   :limit {:max 0.25 :basis "estimate: aisle clearance beside machine guards leaves about 0.25 m before a trainee at a bench is reached"}
+   :boundary {:lo 0.1 :hi 2.0}}
+  {:id :welded-coupon-cooldown
+   :kind :thermal
+   :procedure "a 10 mm mild-steel weld coupon cools on the bench in still air until the trainee may handle it (half thickness, symmetric)"
+   :params {:thickness-m 0.005 :conductivity-w-mk 50.0 :density-kg-m3 7850.0 :specific-heat-j-kgk 490.0
+            :t0-c 400.0 :t-hot-c 20.0 :h-front-w-m2k 15.0 :h-back-w-m2k 0.0
+            :threshold-c 50.0 :threshold-direction :falling :nodes 3}
+   :sweep {:param :duration-s :values [900.0 1800.0 2700.0 3600.0 5400.0]}
+   :quantity :final-front-c
+   :limit {:max 50.0 :basis "estimate: ~50 C bare-hand handling limit for metal; ISO 13732-1 gives the contact burn thresholds to replace it with"}
+   :boundary {:lo 300.0 :hi 10000.0}}]}
